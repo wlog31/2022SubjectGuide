@@ -96,7 +96,7 @@ h2 {
 
 .hero h1 {
   max-width: 780px;
-  font-size: clamp(36px, 6vw, 68px);
+  font-size: clamp(18px, 3vw, 34px);
 }
 
 .hero-stats {
@@ -299,7 +299,7 @@ h2 {
 
 .detail-card h1 {
   margin-top: 8px;
-  font-size: clamp(32px, 5vw, 56px);
+  font-size: clamp(16px, 2.5vw, 28px);
   word-break: keep-all;
 }
 
