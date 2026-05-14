@@ -6,6 +6,24 @@ function getSectionLabel(section, selector) {
   return (section.querySelector(selector)?.textContent || "").trim();
 }
 
+function getCardTitle(card) {
+  return (card.querySelector("strong")?.textContent || "").trim();
+}
+
+function addSelectOptions(select, values) {
+  const seen = new Set();
+
+  for (const value of values) {
+    if (!value || seen.has(value)) continue;
+    seen.add(value);
+
+    const option = document.createElement("option");
+    option.value = value;
+    option.textContent = value;
+    select.append(option);
+  }
+}
+
 function initSearch({ inputSelector, cardSelector, sectionSelector, countSelector, unit }) {
   const input = document.querySelector(inputSelector);
   const cards = Array.from(document.querySelectorAll(cardSelector));
@@ -37,19 +55,38 @@ function initSearch({ inputSelector, cardSelector, sectionSelector, countSelecto
 
 function initCourseSearch() {
   const input = document.querySelector("#courseSearch");
-  const filter = document.querySelector("#courseFilter");
+  const categoryFilter = document.querySelector("#courseCategoryFilter");
+  const trackFilter = document.querySelector("#courseTrackFilter");
   const sections = Array.from(document.querySelectorAll("[data-category-section]"));
   const count = document.querySelector("#resultCount");
-  if (!input || !filter || !sections.length) return;
+  if (!input || !categoryFilter || !trackFilter || !sections.length) return;
+
+  addSelectOptions(
+    categoryFilter,
+    sections
+      .filter((section) => getSectionLabel(section, ".category-head p") === "제1부 교과(군)별")
+      .map((section) => getSectionLabel(section, ".category-head h2"))
+  );
+  addSelectOptions(
+    trackFilter,
+    sections
+      .filter((section) => getSectionLabel(section, ".category-head p") === "제2부 계열별")
+      .map((section) => getSectionLabel(section, ".category-head h2"))
+  );
 
   function updateSearch() {
     const query = input.value.trim().toLowerCase();
-    const activeFilter = filter.value;
+    const selectedCategory = categoryFilter.value;
+    const selectedTrack = trackFilter.value;
     let visible = 0;
 
     for (const section of sections) {
-      const sectionFilter = getSectionLabel(section, ".category-head p");
-      const filterMatches = sectionFilter === activeFilter;
+      const sectionType = getSectionLabel(section, ".category-head p");
+      const sectionName = getSectionLabel(section, ".category-head h2");
+      const filterMatches =
+        (!selectedCategory && !selectedTrack) ||
+        (selectedCategory && sectionType === "제1부 교과(군)별" && sectionName === selectedCategory) ||
+        (selectedTrack && sectionType === "제2부 계열별" && sectionName === selectedTrack);
       const cards = Array.from(section.querySelectorAll("[data-course-card]"));
       let sectionVisible = false;
 
@@ -68,51 +105,46 @@ function initCourseSearch() {
     if (count) count.textContent = visible + "개 과목";
   }
 
-  filter.addEventListener("change", updateSearch);
+  categoryFilter.addEventListener("change", () => {
+    trackFilter.value = "";
+    updateSearch();
+  });
+  trackFilter.addEventListener("change", () => {
+    categoryFilter.value = "";
+    updateSearch();
+  });
   input.addEventListener("input", updateSearch);
   updateSearch();
 }
 
 function initDepartmentSearch() {
   const input = document.querySelector("#departmentSearch");
-  const filter = document.querySelector("#departmentFilter");
+  const nameFilter = document.querySelector("#departmentNameFilter");
+  const sectionFilter = document.querySelector("#departmentSectionFilter");
   const sections = Array.from(document.querySelectorAll("[data-department-section]"));
   const count = document.querySelector("#departmentResultCount");
-  if (!input || !filter || !sections.length) return;
+  const cards = Array.from(document.querySelectorAll("[data-department-card]"));
+  if (!input || !nameFilter || !sectionFilter || !sections.length || !cards.length) return;
 
-  const placeholderByMode = {
-    cards: "학과명, 계열, 선택 과목 검색",
-    sections: "계열 분류명 검색",
-  };
+  addSelectOptions(nameFilter, cards.map(getCardTitle));
+  addSelectOptions(sectionFilter, sections.map((section) => getSectionLabel(section, ".category-head h2")));
 
   function updateSearch() {
     const query = input.value.trim().toLowerCase();
-    const activeMode = filter.value;
-    const sectionMode = activeMode === "sections";
+    const selectedDepartment = nameFilter.value;
+    const selectedSection = sectionFilter.value;
     let visible = 0;
 
-    input.placeholder = placeholderByMode[activeMode] || placeholderByMode.cards;
-
     for (const section of sections) {
-      const cards = Array.from(section.querySelectorAll("[data-department-card]"));
-
-      if (sectionMode) {
-        const sectionName = getSectionLabel(section, ".category-head h2").toLowerCase();
-        const isUnclassified = sectionName === "계열 미분류";
-        const sectionMatches = !isUnclassified && (!query || sectionName.includes(query));
-        section.hidden = !sectionMatches;
-
-        for (const card of cards) {
-          card.hidden = false;
-        }
-
-        if (sectionMatches) visible += 1;
-        continue;
-      }
-
+      const sectionName = getSectionLabel(section, ".category-head h2");
+      const sectionMatches = !selectedSection || sectionName === selectedSection;
+      const sectionCards = Array.from(section.querySelectorAll("[data-department-card]"));
       let sectionVisible = false;
-      for (const card of cards) {
-        const matches = !query || getSearchText(card).includes(query);
+
+      for (const card of sectionCards) {
+        const departmentMatches = !selectedDepartment || getCardTitle(card) === selectedDepartment;
+        const filterMatches = selectedDepartment ? departmentMatches : sectionMatches;
+        const matches = filterMatches && (!query || getSearchText(card).includes(query));
         card.hidden = !matches;
         if (matches) {
           visible += 1;
@@ -123,10 +155,17 @@ function initDepartmentSearch() {
       section.hidden = !sectionVisible;
     }
 
-    if (count) count.textContent = visible + (sectionMode ? "개 계열 분류" : "개 학과");
+    if (count) count.textContent = visible + "개 학과";
   }
 
-  filter.addEventListener("change", updateSearch);
+  nameFilter.addEventListener("change", () => {
+    sectionFilter.value = "";
+    updateSearch();
+  });
+  sectionFilter.addEventListener("change", () => {
+    nameFilter.value = "";
+    updateSearch();
+  });
   input.addEventListener("input", updateSearch);
   updateSearch();
 }
