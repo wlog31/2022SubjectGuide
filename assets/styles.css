@@ -106,7 +106,8 @@ h2 {
   margin: 24px 0;
 }
 
-.hero-stats span {
+.hero-stats span,
+.filter-button {
   display: inline-flex;
   align-items: baseline;
   gap: 7px;
@@ -117,8 +118,35 @@ h2 {
   color: var(--muted);
 }
 
-.hero-stats strong {
+.filter-button {
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.filter-button:hover,
+.filter-button:focus-visible,
+.filter-button[aria-pressed="true"] {
+  border-color: var(--accent);
+  color: var(--ink);
+  outline: none;
+}
+
+.filter-button:focus-visible {
+  box-shadow: 0 0 0 3px rgba(11, 114, 133, 0.18);
+}
+
+.filter-button[aria-pressed="true"] {
+  background: #edf8fa;
+}
+
+.hero-stats strong,
+.filter-button[aria-pressed="true"] strong {
   color: var(--accent-3);
+}
+
+.hero h1 + .search-box {
+  margin-top: 24px;
 }
 
 .search-box {

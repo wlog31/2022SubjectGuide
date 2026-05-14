@@ -1,3 +1,17 @@
+function getSearchText(card) {
+  return (card.dataset.search || "").toLowerCase();
+}
+
+function getSectionLabel(section, selector) {
+  return (section.querySelector(selector)?.textContent || "").trim();
+}
+
+function setActiveButton(buttons, activeButton) {
+  for (const button of buttons) {
+    button.setAttribute("aria-pressed", String(button === activeButton));
+  }
+}
+
 function initSearch({ inputSelector, cardSelector, sectionSelector, countSelector, unit }) {
   const input = document.querySelector(inputSelector);
   const cards = Array.from(document.querySelectorAll(cardSelector));
@@ -10,7 +24,7 @@ function initSearch({ inputSelector, cardSelector, sectionSelector, countSelecto
     let visible = 0;
 
     for (const card of cards) {
-      const matches = !query || card.dataset.search.includes(query);
+      const matches = !query || getSearchText(card).includes(query);
       card.hidden = !matches;
       if (matches) visible += 1;
     }
@@ -27,13 +41,116 @@ function initSearch({ inputSelector, cardSelector, sectionSelector, countSelecto
   updateSearch();
 }
 
-initSearch({
-  inputSelector: "#courseSearch",
-  cardSelector: "[data-course-card]",
-  sectionSelector: "[data-category-section]",
-  countSelector: "#resultCount",
-  unit: "개 과목",
-});
+function initCourseSearch() {
+  const input = document.querySelector("#courseSearch");
+  const sections = Array.from(document.querySelectorAll("[data-category-section]"));
+  const buttons = Array.from(document.querySelectorAll("[data-course-filter]"));
+  const count = document.querySelector("#resultCount");
+  if (!input || !sections.length || !buttons.length) return;
+
+  let activeFilter = buttons.find((button) => button.getAttribute("aria-pressed") === "true")?.dataset.courseFilter || buttons[0].dataset.courseFilter;
+
+  function updateSearch() {
+    const query = input.value.trim().toLowerCase();
+    let visible = 0;
+
+    for (const section of sections) {
+      const sectionFilter = getSectionLabel(section, ".category-head p");
+      const filterMatches = sectionFilter === activeFilter;
+      const cards = Array.from(section.querySelectorAll("[data-course-card]"));
+      let sectionVisible = false;
+
+      for (const card of cards) {
+        const matches = filterMatches && (!query || getSearchText(card).includes(query));
+        card.hidden = !matches;
+        if (matches) {
+          visible += 1;
+          sectionVisible = true;
+        }
+      }
+
+      section.hidden = !sectionVisible;
+    }
+
+    if (count) count.textContent = visible + "개 과목";
+  }
+
+  for (const button of buttons) {
+    button.addEventListener("click", () => {
+      activeFilter = button.dataset.courseFilter;
+      setActiveButton(buttons, button);
+      updateSearch();
+    });
+  }
+
+  updateSearch();
+}
+
+function initDepartmentSearch() {
+  const input = document.querySelector("#departmentSearch");
+  const sections = Array.from(document.querySelectorAll("[data-department-section]"));
+  const buttons = Array.from(document.querySelectorAll("[data-department-filter]"));
+  const count = document.querySelector("#departmentResultCount");
+  if (!input || !sections.length || !buttons.length) return;
+
+  const placeholderByMode = {
+    cards: "학과명, 계열, 선택 과목 검색",
+    sections: "계열 분류명 검색",
+  };
+  let activeMode = buttons.find((button) => button.getAttribute("aria-pressed") === "true")?.dataset.departmentFilter || buttons[0].dataset.departmentFilter;
+
+  function updateSearch() {
+    const query = input.value.trim().toLowerCase();
+    const sectionMode = activeMode === "sections";
+    let visible = 0;
+
+    input.placeholder = placeholderByMode[activeMode] || placeholderByMode.cards;
+
+    for (const section of sections) {
+      const cards = Array.from(section.querySelectorAll("[data-department-card]"));
+
+      if (sectionMode) {
+        const sectionName = getSectionLabel(section, ".category-head h2").toLowerCase();
+        const isUnclassified = sectionName === "계열 미분류";
+        const sectionMatches = !isUnclassified && (!query || sectionName.includes(query));
+        section.hidden = !sectionMatches;
+
+        for (const card of cards) {
+          card.hidden = false;
+        }
+
+        if (sectionMatches) visible += 1;
+        continue;
+      }
+
+      let sectionVisible = false;
+      for (const card of cards) {
+        const matches = !query || getSearchText(card).includes(query);
+        card.hidden = !matches;
+        if (matches) {
+          visible += 1;
+          sectionVisible = true;
+        }
+      }
+
+      section.hidden = !sectionVisible;
+    }
+
+    if (count) count.textContent = visible + (sectionMode ? "개 계열 분류" : "개 학과");
+  }
+
+  for (const button of buttons) {
+    button.addEventListener("click", () => {
+      activeMode = button.dataset.departmentFilter;
+      setActiveButton(buttons, button);
+      updateSearch();
+    });
+  }
+
+  updateSearch();
+}
+
+initCourseSearch();
 
 initSearch({
   inputSelector: "#trackSearch",
@@ -43,10 +160,4 @@ initSearch({
   unit: "개 계열",
 });
 
-initSearch({
-  inputSelector: "#departmentSearch",
-  cardSelector: "[data-department-card]",
-  sectionSelector: "[data-department-section]",
-  countSelector: "#departmentResultCount",
-  unit: "개 학과",
-});
+initDepartmentSearch();
