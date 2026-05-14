@@ -22,10 +22,13 @@
   <section class="hero">
     <p class="eyebrow">2022 개정 교육과정에 따른 고등학교 과목 안내서</p>
     <h1>교과 정보</h1>
-    <div class="hero-stats filter-buttons" role="group" aria-label="교과 정보 필터">
-      <button type="button" class="filter-button" data-course-filter="제1부 교과(군)별" aria-pressed="true"><strong>155</strong> 교과(군)별</button>
-      <button type="button" class="filter-button" data-course-filter="제2부 계열별" aria-pressed="false"><strong>135</strong> 계열별</button>
-    </div>
+    <label class="filter-select">
+      <span>보기 방식</span>
+      <select id="courseFilter" aria-label="교과 정보 필터">
+        <option value="제1부 교과(군)별">교과(군)별 (155)</option>
+        <option value="제2부 계열별">계열별 (135)</option>
+      </select>
+    </label>
     <label class="search-box">
       <span>검색</span>
       <input id="courseSearch" type="search" placeholder="과목명, 교과, 계열 검색" autocomplete="off">
